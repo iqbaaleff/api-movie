@@ -1,7 +1,7 @@
 const express = require('express')
 const cors = require('cors')
-
 const movieRoutes = require('./routes/movies')
+const genreRoutes = require('./routes/genres')
 
 const app = express()
 
@@ -10,7 +10,8 @@ app.use(cors())
 app.use(express.json())
 
 // Routes
-app.use('/', movieRoutes)
+app.use('/movie', movieRoutes)
+app.use('/genre', genreRoutes)
 
 // 404 Handler
 app.use((req, res, next) => {

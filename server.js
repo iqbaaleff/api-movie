@@ -6,7 +6,7 @@ const PORT = process.env.PORT || 3000
 
 // Sync database dan jalankan server
 sequelize
-  .sync({ alter: true }) // atau { force: true } saat development awal
+  .sync() // atau { force: true } saat development awal
   .then(() => {
     console.log('✅ Database connected & synced')
     app.listen(PORT, () => {
