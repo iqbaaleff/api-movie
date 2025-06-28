@@ -1,16 +1,20 @@
 module.exports = (sequelize, DataTypes) => {
-  const Movie = sequelize.define('Movie', {
+  const Movie = sequelize.define('Movies', {
     title: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    director: {
-      type: DataTypes.STRING,
-    },
-    year: {
-      type: DataTypes.INTEGER,
-    },
+    director: DataTypes.STRING,
+    year: DataTypes.INTEGER,
   })
+
+  Movie.associate = (models) => {
+    Movie.belongsToMany(models.Genres, {
+      through: 'MovieGenres',
+      as: 'genres',
+      foreignKey: 'movieId',
+    })
+  }
 
   return Movie
 }

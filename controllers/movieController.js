@@ -1,40 +1,66 @@
-const { Movie } = require('../models')
+const { Movie, Genre, Actor } = require('../models')
+
+// Gunakan include yang eksplisit agar tidak error jika alias typo
+const movieIncludeOptions = [
+  { model: Genre, as: 'genres' },
+  { model: Actor, as: 'actors' },
+]
 
 const getAllMovies = async (req, res) => {
   try {
-    const movies = await Movie.findAll()
+    const movies = await Movie.findAll({ include: movieIncludeOptions })
     res.status(200).json({
-      movies,
-      metadata: 'test movies endpoint',
+      data: movies,
+      metadata: 'Daftar semua movie lengkap dengan genre dan aktor',
     })
   } catch (error) {
-    res.status(500).json({ message: 'Gagal mengambil data movies', error })
+    console.error(error)
+    res.status(500).json({ message: 'Gagal mengambil data movies' })
   }
 }
 
-const addMovies = async (req, res) => {
+const addMovie = async (req, res) => {
   try {
-    const { title, director, year } = req.body
+    const { title, director, year, genreIds = [], actorIds = [] } = req.body
 
-    const newMovie = await Movie.create({
-      title,
-      director,
-      year,
+    if (!title || typeof title !== 'string') {
+      return res
+        .status(400)
+        .json({ message: 'Title wajib diisi dan berupa string' })
+    }
+
+    const newMovie = await Movie.create({ title, director, year })
+
+    if (genreIds.length > 0) {
+      await newMovie.setGenres(genreIds)
+    }
+
+    if (actorIds.length > 0) {
+      for (const actor of actorIds) {
+        await newMovie.addActor(actor.id, {
+          through: { role_name: actor.role_name },
+        })
+      }
+    }
+
+    const result = await Movie.findByPk(newMovie.id, {
+      include: movieIncludeOptions,
     })
 
     res.status(201).json({
-      data: newMovie,
-      message: 'Berhasil menambahkan',
+      data: result,
+      message: 'Berhasil menambahkan movie',
     })
   } catch (error) {
-    res.status(500).json({ message: 'Gagal menambah data movies', error })
+    console.error(error)
+    res.status(500).json({ message: 'Gagal menambahkan movie' })
   }
 }
 
-const editMovies = async (req, res) => {
+const editMovie = async (req, res) => {
   try {
     const { id } = req.params
-    const { title, director, year } = req.body
+    const { title, director, year, genreIds = [], actorIds = [] } = req.body
 
     const movie = await Movie.findByPk(id)
     if (!movie) {
@@ -43,12 +69,20 @@ const editMovies = async (req, res) => {
 
     await movie.update({ title, director, year })
 
+    await movie.setGenres(genreIds || [])
+    await movie.setActors(actorIds || [])
+
+    const updatedMovie = await Movie.findByPk(id, {
+      include: movieIncludeOptions,
+    })
+
     res.status(200).json({
-      data: movie,
-      message: 'Berhasil mengedit',
+      data: updatedMovie,
+      message: 'Berhasil mengedit movie',
     })
   } catch (error) {
-    res.status(500).json({ message: 'Gagal mengedit data movies', error })
+    console.error(error)
+    res.status(500).json({ message: 'Gagal mengedit movie' })
   }
 }
 
@@ -61,17 +95,21 @@ const deleteMovie = async (req, res) => {
       return res.status(404).json({ message: 'Movie tidak ditemukan' })
     }
 
+    await movie.setGenres([])
+    await movie.setActors([])
+
     await movie.destroy()
 
     res.status(200).json({ message: 'Berhasil menghapus movie' })
   } catch (error) {
-    res.status(500).json({ message: 'Gagal menghapus data movies', error })
+    console.error(error)
+    res.status(500).json({ message: 'Gagal menghapus movie' })
   }
 }
 
 module.exports = {
   getAllMovies,
-  addMovies,
-  editMovies,
+  addMovie,
+  editMovie,
   deleteMovie,
 }
